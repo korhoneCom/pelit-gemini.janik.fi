@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="fi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Eurontuotteet.fi - Peliareena</title>
+  <style>
+    :root {
+      --primary: #d9232e;
+      --primary-dark: #b01a23;
+      --bg-color: #f4f6f8;
+      --nav-bg: #ffffff;
+      --text-color: #333333;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    header {
+      background-color: var(--nav-bg);
+      border-bottom: 2px solid #e5e5e5;
+      padding: 12px 20px;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+      z-index: 10;
+    }
+
+    .brand {
+      font-size: 1.3rem;
+      font-weight: bold;
+      color: var(--primary);
+    }
+
+    .nav-buttons {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .nav-btn {
+      background-color: transparent;
+      color: var(--text-color);
+      border: 2px solid #e0e0e0;
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-weight: bold;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .nav-btn:hover { border-color: var(--primary); color: var(--primary); }
+
+    .nav-btn.active {
+      background-color: var(--primary);
+      color: white;
+      border-color: var(--primary);
+    }
+
+    .cart-btn {
+      background-color: #28a745;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-weight: bold;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .cart-btn:hover { background-color: #218838; }
+
+    .cart-badge {
+      background: white;
+      color: #28a745;
+      border-radius: 50%;
+      padding: 2px 7px;
+      font-size: 0.8rem;
+      transition: transform 0.2s ease;
+    }
+
+    main { flex: 1; width: 100%; position: relative; }
+    iframe { width: 100%; height: 100%; border: none; display: block; }
+
+    /* Ostoskoripaneeli */
+    .cart-drawer {
+      position: fixed;
+      top: 0;
+      right: -400px;
+      width: 350px;
+      height: 100%;
+      background: white;
+      box-shadow: -4px 0 15px rgba(0,0,0,0.15);
+      z-index: 100;
+      transition: right 0.3s ease;
+      display: flex;
+      flex-direction: column;
+      padding: 20px;
+    }
+
+    .cart-drawer.open { right: 0; }
+
+    .cart-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 2px solid #eee;
+      padding-bottom: 10px;
+      margin-bottom: 15px;
+    }
+
+    .cart-header h2 { color: var(--primary); font-size: 1.3rem; }
+
+    .close-cart {
+      background: none;
+      border: none;
+      font-size: 1.5rem;
+      cursor: pointer;
+      color: #888;
+    }
+
+    .cart-items {
+      flex: 1;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .cart-item {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      border: 1px solid #eee;
+      padding: 10px;
+      border-radius: 8px;
+    }
+
+    .cart-item img {
+      width: 50px;
+      height: 50px;
+      object-fit: contain;
+    }
+
+    .cart-item-details { flex: 1; }
+
+    .cart-item-title {
+      font-size: 0.85rem;
+      font-weight: bold;
+      line-height: 1.2;
+    }
+
+    .cart-item-price {
+      color: var(--primary);
+      font-weight: bold;
+      font-size: 0.9rem;
+    }
+
+    .remove-item {
+      color: #dc3545;
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 1.2rem;
+      padding: 0 5px;
+    }
+
+    .cart-footer {
+      border-top: 2px solid #eee;
+      padding-top: 15px;
+      margin-top: 15px;
+    }
+
+    .cart-total {
+      display: flex;
+      justify-content: space-between;
+      font-size: 1.1rem;
+      font-weight: bold;
+      margin-bottom: 15px;
+    }
+
+    .shop-link-btn {
+      display: block;
+      width: 100%;
+      text-align: center;
+      background-color: var(--primary);
+      color: white;
+      text-decoration: none;
+      padding: 12px;
+      border-radius: 6px;
+      font-weight: bold;
+    }
+
+    .shop-link-btn:hover { background-color: var(--primary-dark); }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="brand">Eurontuotteet.fi Peliareena</div>
+    <nav class="nav-buttons">
+      <button class="nav-btn active" onclick="loadGame('etusivu.html', this)">Etusivu</button>
+      <button class="nav-btn" onclick="loadGame('muistipeli.html', this)">Muistipeli</button>
+      <button class="nav-btn" onclick="loadGame('onnenpyora.html', this)">Onnenpyörä</button>
+      <button class="nav-btn" onclick="loadGame('tinder.html', this)">Tuoteselain</button>
+      <button class="cart-btn" onclick="toggleCart()">
+        🛒 Ostoskori <span class="cart-badge" id="cart-count">0</span>
+      </button>
+    </nav>
+  </header>
+
+  <main>
+    <iframe id="game-frame" src="etusivu.html" title="Eurontuotteet Pelit"></iframe>
+  </main>
+
+  <!-- Ostoskoripaneeli -->
+  <aside class="cart-drawer" id="cart-drawer">
+    <div class="cart-header">
+      <h2>Ostoskori</h2>
+      <button class="close-cart" onclick="toggleCart()">&times;</button>
+    </div>
+    <div class="cart-items" id="cart-items-list"></div>
+    <div class="cart-footer">
+      <div class="cart-total">
+        <span>Yhteensä:</span>
+        <span id="cart-total-price">0 €</span>
+      </div>
+      <a href="https://eurontuotteet.fi" target="_blank" rel="noopener" class="shop-link-btn">Siirry Eurontuotteet.fi -kauppaan &rarr;</a>
+    </div>
+  </aside>
+
+  <script>
+    let cart = JSON.parse(localStorage.getItem('euron_cart') || '[]');
+
+    function loadGame(pageUrl, button) {
+      document.getElementById('game-frame').src = pageUrl;
+      const buttons = document.querySelectorAll('.nav-btn');
+      buttons.forEach(btn => btn.classList.remove('active'));
+      button.classList.add('active');
+    }
+
+    function toggleCart() {
+      document.getElementById('cart-drawer').classList.toggle('open');
+    }
+
+    function updateCartUI() {
+      const listEl = document.getElementById('cart-items-list');
+      const countEl = document.getElementById('cart-count');
+      const totalEl = document.getElementById('cart-total-price');
+
+      countEl.textContent = cart.length;
+
+      if (cart.length === 0) {
+        listEl.innerHTML = '<p style="color: #777; text-align: center; margin-top: 20px;">Ostoskori on tyhjä.</p>';
+        totalEl.textContent = '0 €';
+        localStorage.setItem('euron_cart', JSON.stringify(cart));
+        return;
+      }
+
+      listEl.innerHTML = '';
+      let total = 0;
+
+      cart.forEach((item, index) => {
+        const priceNum = parseFloat(item.price) || 1;
+        total += priceNum;
+
+        const div = document.createElement('div');
+        div.classList.add('cart-item');
+        div.innerHTML = `
+          <img src="${item.image}" alt="${item.title}">
+          <div class="cart-item-details">
+            <div class="cart-item-title">${item.title}</div>
+            <div class="cart-item-price">${item.price}</div>
+            <a href="${item.url}" target="_blank" style="font-size: 0.75rem; color: #0066cc;">Tuotesivu &rarr;</a>
+          </div>
+          <button class="remove-item" onclick="removeFromCart(${index})">&times;</button>
+        `;
+        listEl.appendChild(div);
+      });
+
+      totalEl.textContent = total + ' €';
+      localStorage.setItem('euron_cart', JSON.stringify(cart));
+    }
+
+    function addToCart(product) {
+      cart.push(product);
+      updateCartUI();
+
+      const badge = document.getElementById('cart-count');
+      badge.style.transform = 'scale(1.4)';
+      setTimeout(() => badge.style.transform = 'scale(1)', 200);
+    }
+
+    function removeFromCart(index) {
+      cart.splice(index, 1);
+      updateCartUI();
+    }
+
+    // Vastaanotetaan tuotteita iframe-peleistä
+    window.addEventListener('message', (event) => {
+      if (event.data && event.data.type === 'ADD_TO_CART') {
+        addToCart(event.data.product);
+      }
+    });
+
+    updateCartUI();
+  </script>
+
+</body>
+</html>

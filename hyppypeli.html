@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Vaakajuoksupeli</title>
+  <title>Vaakajuoksupeli - Dreamlo Leaderboard</title>
   <style>
     :root {
       --primary: #d9232e;
@@ -49,13 +49,46 @@
       justify-content: space-between;
       width: 100%;
       max-width: 600px;
-      font-size: 1.1rem;
+      font-size: 1rem;
       font-weight: bold;
       margin-bottom: 10px;
       background: white;
-      padding: 10px 20px;
+      padding: 10px 15px;
       border-radius: 8px;
       box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+    }
+
+    .leaderboard {
+      width: 100%;
+      max-width: 600px;
+      background: white;
+      border-radius: 8px;
+      padding: 15px;
+      margin-top: 15px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+    }
+
+    .leaderboard h2 {
+      font-size: 1.1rem;
+      color: var(--primary);
+      margin-bottom: 10px;
+      text-align: center;
+    }
+
+    .leaderboard table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.95rem;
+    }
+
+    .leaderboard th, .leaderboard td {
+      padding: 6px 10px;
+      text-align: left;
+      border-bottom: 1px solid #eee;
+    }
+
+    .leaderboard th:last-child, .leaderboard td:last-child {
+      text-align: right;
     }
 
     .controls-hint {
@@ -78,13 +111,6 @@
     }
 
     .btn:hover { background-color: #b01a23; }
-
-    .btn-download {
-      background-color: #28a745;
-      margin-left: 10px;
-    }
-
-    .btn-download:hover { background-color: #218838; }
   </style>
 </head>
 <body>
@@ -105,12 +131,26 @@
 
   <div class="controls-hint">Paina <strong>Välilyöntiä</strong>, <strong>Nuoli ylös</strong> -näppäintä tai kosketa ruutua hyppääksesi.</div>
 
-  <div id="btn-group">
-    <button class="btn" onclick="startGame()">Aloita alusta</button>
-    <button class="btn btn-download" id="download-btn" onclick="downloadScore()" style="display:none;">Lataa pisteet (.txt)</button>
+  <button class="btn" onclick="startGame()">Aloita alusta</button>
+
+  <div class="leaderboard">
+    <h2>🏆 Maailmanlaajuinen TOP 5</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Sija</th>
+          <th>Nimi</th>
+          <th>Pisteet</th>
+        </tr>
+      </thead>
+      <tbody id="leaderboard-body">
+        <tr><td colspan="3" style="text-align:center;">Ladataan tuloksia...</td></tr>
+      </tbody>
+    </table>
   </div>
 
   <script>
+    const DREAMLO_KEY = "6ODREvZM8E-yS0p6cxscpwF1GF-CKAgUG047AYEdmhLA";
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
 
@@ -169,7 +209,6 @@
       score++;
       document.getElementById('score').textContent = score;
 
-      // Pelaajan fysiikka
       player.velocityY += player.gravity;
       player.y += player.velocityY;
 
@@ -179,16 +218,12 @@
         player.isGrounded = true;
       }
 
-      // Esteiden luonti ja liike
-      if (frameCount % 100 === 0) {
-        spawnObstacle();
-      }
+      if (frameCount % 100 === 0) spawnObstacle();
 
       for (let i = obstacles.length - 1; i >= 0; i--) {
         let obs = obstacles[i];
         obs.x -= gameSpeed;
 
-        // Osumatunnistus esteeseen
         if (
           player.x < obs.x + obs.width &&
           player.x + player.width > obs.x &&
@@ -199,21 +234,15 @@
           return;
         }
 
-        if (obs.x + obs.width < 0) {
-          obstacles.splice(i, 1);
-        }
+        if (obs.x + obs.width < 0) obstacles.splice(i, 1);
       }
 
-      // Kolikoiden luonti ja liike
-      if (frameCount % 130 === 0) {
-        spawnCoin();
-      }
+      if (frameCount % 130 === 0) spawnCoin();
 
       for (let i = coins.length - 1; i >= 0; i--) {
         let coin = coins[i];
         coin.x -= gameSpeed;
 
-        // Osumatunnistus kolikkoon
         const distX = (player.x + player.width / 2) - coin.x;
         const distY = (player.y + player.height / 2) - coin.y;
         const distance = Math.sqrt(distX * distX + distY * distY);
@@ -226,37 +255,26 @@
           continue;
         }
 
-        if (coin.x + coin.radius < 0) {
-          coins.splice(i, 1);
-        }
+        if (coin.x + coin.radius < 0) coins.splice(i, 1);
       }
 
-      // Pelin nopeuttaminen ajan myötä
-      if (frameCount % 500 === 0) {
-        gameSpeed += 0.5;
-      }
+      if (frameCount % 500 === 0) gameSpeed += 0.5;
     }
 
     function draw() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      // Maanpinta
       ctx.fillStyle = '#388E3C';
       ctx.fillRect(0, GROUND_Y, canvas.width, canvas.height - GROUND_Y);
 
-      // Pelaaja
       ctx.fillStyle = '#d9232e';
       ctx.fillRect(player.x, player.y, player.width, player.height);
       ctx.fillStyle = '#ffffff';
       ctx.fillRect(player.x + 18, player.y + 8, 6, 6);
 
-      // Esteet
       ctx.fillStyle = '#555555';
-      obstacles.forEach(obs => {
-        ctx.fillRect(obs.x, obs.y, obs.width, obs.height);
-      });
+      obstacles.forEach(obs => ctx.fillRect(obs.x, obs.y, obs.width, obs.height));
 
-      // Kolikot
       coins.forEach(coin => {
         ctx.fillStyle = '#FFD700';
         ctx.beginPath();
@@ -273,7 +291,6 @@
         ctx.fillText('€', coin.x, coin.y);
       });
 
-      // Game Over -ruutu
       if (isGameOver) {
         ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -281,43 +298,68 @@
         ctx.fillStyle = '#ffffff';
         ctx.font = 'bold 26px sans-serif';
         ctx.textAlign = 'center';
-        ctx.fillText('Peli päättyi!', canvas.width / 2, canvas.height / 2 - 20);
+        ctx.fillText('Peli päättyi!', canvas.width / 2, canvas.height / 2 - 10);
 
         ctx.font = '16px sans-serif';
-        ctx.fillText(`Kokonaispisteet: ${score} | Kolikot: ${coinsCollected}`, canvas.width / 2, canvas.height / 2 + 15);
+        ctx.fillText(`Loppupisteet: ${score}`, canvas.width / 2, canvas.height / 2 + 20);
       }
     }
 
     function gameLoop() {
       update();
       draw();
-      if (!isGameOver) {
-        animationFrameId = requestAnimationFrame(gameLoop);
+      if (!isGameOver) animationFrameId = requestAnimationFrame(gameLoop);
+    }
+
+    async function fetchLeaderboard() {
+      const tbody = document.getElementById('leaderboard-body');
+      try {
+        const response = await fetch(`https://www.dreamlo.com/lb/${DREAMLO_KEY}/json`);
+        const data = await response.json();
+        
+        let entries = data.dreamlo.leaderboard ? data.dreamlo.leaderboard.entry : [];
+        if (!Array.isArray(entries)) entries = entries ? [entries] : [];
+
+        tbody.innerHTML = '';
+        if (entries.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;">Ei vielä tuloksia. Ole ensimmäinen!</td></tr>';
+          return;
+        }
+
+        entries.slice(0, 5).forEach((entry, index) => {
+          const row = document.createElement('tr');
+          row.innerHTML = `
+            <td>#${index + 1}</td>
+            <td>${entry.name}</td>
+            <td>${entry.score}</td>
+          `;
+          tbody.appendChild(row);
+        });
+      } catch (err) {
+        tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;">Tuloslistan lataus epäonnistui.</td></tr>';
+      }
+    }
+
+    async function submitScore(name, score) {
+      const cleanName = encodeURIComponent(name.trim() || 'Anonyymi');
+      try {
+        await fetch(`https://www.dreamlo.com/lb/${DREAMLO_KEY}/add/${cleanName}/${score}`);
+        fetchLeaderboard();
+      } catch (err) {
+        console.error('Virhe pisteiden lähetystilanteessa:', err);
       }
     }
 
     function endGame() {
       isGameOver = true;
-      document.getElementById('download-btn').style.display = 'inline-block';
       draw();
-      downloadScore();
-    }
 
-    function downloadScore() {
-      const date = new Date().toLocaleString('fi-FI');
-      const textContent = 
-`--- PELITULOS ---
-Päivämäärä: ${date}
-Kokonaispisteet: ${score}
-Kerätyt kolikot: ${coinsCollected}
------------------`;
-
-      const blob = new Blob([textContent], { type: 'text/plain;charset=utf-8' });
-      const link = document.createElement('a');
-      link.href = URL.createObjectURL(blob);
-      link.download = `pisteet_${score}.txt`;
-      link.click();
-      URL.revokeObjectURL(link.href);
+      setTimeout(() => {
+        const playerName = prompt(`Sait ${score} pistettä! Syötä nimimerkkisi tuloslistalle:`);
+        if (playerName !== null) {
+          submitScore(playerName, score);
+        }
+      }, 100);
     }
 
     function startGame() {
@@ -336,7 +378,6 @@ Kerätyt kolikot: ${coinsCollected}
 
       document.getElementById('score').textContent = score;
       document.getElementById('coins').textContent = coinsCollected;
-      document.getElementById('download-btn').style.display = 'none';
 
       gameLoop();
     }
@@ -353,10 +394,10 @@ Kerätyt kolikot: ${coinsCollected}
       jump();
     });
 
-    canvas.addEventListener('mousedown', () => {
-      jump();
-    });
+    canvas.addEventListener('mousedown', jump);
 
+    // Ladataan tuloslista heti sivun avautuessa
+    fetchLeaderboard();
     startGame();
   </script>
 

@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="fi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kolikkopeli</title>
+  <style>
+    :root {
+      --primary: #d9232e;
+      --bg-color: #f4f6f8;
+      --text-color: #333333;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 15px;
+      user-select: none;
+    }
+
+    header { text-align: center; margin-bottom: 10px; }
+    h1 { color: var(--primary); margin-bottom: 5px; font-size: 1.5rem; }
+
+    .game-info {
+      display: flex;
+      gap: 20px;
+      font-weight: bold;
+      font-size: 1.1rem;
+      margin-bottom: 10px;
+      background: white;
+      padding: 8px 18px;
+      border-radius: 20px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+    }
+
+    .canvas-container {
+      position: relative;
+      width: 100%;
+      max-width: 480px;
+    }
+
+    canvas {
+      background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+      border: 3px solid var(--primary);
+      border-radius: 12px;
+      display: block;
+      width: 100%;
+      height: auto;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      touch-action: none;
+    }
+
+    .controls-hint {
+      margin-top: 10px;
+      font-size: 0.85rem;
+      color: #666;
+      text-align: center;
+    }
+
+    .restart-btn {
+      margin-top: 12px;
+      background-color: var(--primary);
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 6px;
+      font-weight: bold;
+      cursor: pointer;
+      font-size: 0.95rem;
+    }
+
+    .restart-btn:hover { background-color: #b01a23; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>Kolikkopeli</h1>
+    <p>Kerää mahdollisimman monta kolikkoa ennen kuin aika loppuu!</p>
+  </header>
+
+  <div class="game-info">
+    <div>Pisteet: <span id="score">0</span></div>
+    <div>Aikaa: <span id="timer">30</span>s</div>
+  </div>
+
+  <div class="canvas-container">
+    <canvas id="gameCanvas" width="400" height="500"></canvas>
+  </div>
+
+  <div class="controls-hint">Liikuta alustaa hiirellä, koskettamalla tai nuolinäppäimillä (← / →).</div>
+  <button class="restart-btn" onclick="startGame()">Pelaa uudelleen</button>
+
+  <script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+
+    let score = 0;
+    let timeLeft = 30;
+    let isGameOver = false;
+    let timerInterval = null;
+    let coins = [];
+
+    const player = {
+      x: canvas.width / 2 - 35,
+      y: canvas.height - 30,
+      width: 70,
+      height: 15,
+      speed: 7
+    };
+
+    const keys = { left: false, right: false };
+
+    function spawnCoin() {
+      if (isGameOver) return;
+      coins.push({
+        x: Math.random() * (canvas.width - 24) + 12,
+        y: -15,
+        radius: 12,
+        speed: 2.5 + Math.random() * 2.5,
+        value: 1
+      });
+    }
+
+    function update() {
+      if (isGameOver) return;
+
+      if (keys.left && player.x > 0) player.x -= player.speed;
+      if (keys.right && player.x + player.width < canvas.width) player.x += player.speed;
+
+      for (let i = coins.length - 1; i >= 0; i--) {
+        const coin = coins[i];
+        coin.y += coin.speed;
+
+        // Osuma alustaan
+        if (
+          coin.y + coin.radius >= player.y &&
+          coin.x + coin.radius >= player.x &&
+          coin.x - coin.radius <= player.x + player.width
+        ) {
+          score += coin.value;
+          document.getElementById('score').textContent = score;
+          coins.splice(i, 1);
+          continue;
+        }
+
+        // Putoaa ohi ruudun
+        if (coin.y - coin.radius > canvas.height) {
+          coins.splice(i, 1);
+        }
+      }
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Piirretään pelaajan alusta
+      ctx.fillStyle = '#d9232e';
+      ctx.beginPath();
+      ctx.roundRect(player.x, player.y, player.width, player.height, 4);
+      ctx.fill();
+
+      // Piirretään kolikot
+      coins.forEach(coin => {
+        // Ulkoreuna
+        ctx.fillStyle = '#ffd700';
+        ctx.beginPath();
+        ctx.arc(coin.x, coin.y, coin.radius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#b8860b';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        // Euro-merkki
+        ctx.fillStyle = '#b8860b';
+        ctx.font = 'bold 12px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('€', coin.x, coin.y);
+      });
+
+      // Pelin päättyminen
+      if (isGameOver) {
+        ctx.fillStyle = 'rgba(0,0,0,0.75)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 24px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'alphabetic';
+        ctx.fillText('Aika loppui!', canvas.width / 2, canvas.height / 2 - 15);
+        ctx.font = '16px sans-serif';
+        ctx.fillText(`Keräsit yhteensä ${score} kolikkoa!`, canvas.width / 2, canvas.height / 2 + 15);
+      }
+    }
+
+    function gameLoop() {
+      update();
+      draw();
+      if (!isGameOver) requestAnimationFrame(gameLoop);
+    }
+
+    function startGame() {
+      score = 0;
+      timeLeft = 30;
+      isGameOver = false;
+      coins = [];
+      player.x = canvas.width / 2 - 35;
+
+      document.getElementById('score').textContent = score;
+      document.getElementById('timer').textContent = timeLeft;
+
+      clearInterval(timerInterval);
+      timerInterval = setInterval(() => {
+        timeLeft--;
+        document.getElementById('timer').textContent = timeLeft;
+        if (timeLeft <= 0) {
+          isGameOver = true;
+          clearInterval(timerInterval);
+          draw();
+        }
+      }, 1000);
+
+      requestAnimationFrame(gameLoop);
+    }
+
+    // Luodaan kolikoita säännöllisesti
+    setInterval(spawnCoin, 600);
+
+    // Näppäimistöohjaus
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowLeft') keys.left = true;
+      if (e.key === 'ArrowRight') keys.right = true;
+    });
+
+    window.addEventListener('keyup', (e) => {
+      if (e.key === 'ArrowLeft') keys.left = false;
+      if (e.key === 'ArrowRight') keys.right = false;
+    });
+
+    // Hiiri- ja kosketusohjaus
+    function handleMove(clientX) {
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = canvas.width / rect.width;
+      const mouseX = (clientX - rect.left) * scaleX;
+      player.x = Math.max(0, Math.min(canvas.width - player.width, mouseX - player.width / 2));
+    }
+
+    canvas.addEventListener('mousemove', (e) => handleMove(e.clientX));
+    canvas.addEventListener('touchmove', (e) => {
+      if (e.touches.length > 0) handleMove(e.touches[0].clientX);
+    }, { passive: true });
+
+    startGame();
+  </script>
+</body>
+</html>

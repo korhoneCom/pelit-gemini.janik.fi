@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="fi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Eurontuotteet.fi - Tuotevisa</title>
+  <style>
+    :root {
+      --primary: #d9232e;
+      --primary-dark: #b01a23;
+      --bg-color: #f4f6f8;
+      --card-bg: #ffffff;
+      --text-color: #333333;
+      --correct: #28a745;
+      --incorrect: #dc3545;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      margin: 0;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    h1 {
+      color: var(--primary);
+      margin-bottom: 5px;
+    }
+
+    .quiz-container {
+      background: var(--card-bg);
+      border-radius: 12px;
+      padding: 25px;
+      max-width: 450px;
+      width: 100%;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      box-sizing: border-box;
+      text-align: center;
+    }
+
+    .score-board {
+      font-weight: bold;
+      margin-bottom: 15px;
+      font-size: 1.1rem;
+      display: flex;
+      justify-content: space-between;
+      border-bottom: 2px solid #f0f0f0;
+      padding-bottom: 10px;
+    }
+
+    .image-box {
+      width: 100%;
+      height: 220px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 20px;
+      background: #fafafa;
+      border-radius: 8px;
+      border: 1px solid #eee;
+    }
+
+    .image-box img {
+      max-width: 90%;
+      max-height: 90%;
+      object-fit: contain;
+    }
+
+    .options-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    .option-btn {
+      background-color: #f8f9fa;
+      border: 2px solid #e9ecef;
+      color: var(--text-color);
+      padding: 12px 15px;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      text-align: left;
+      transition: all 0.2s;
+    }
+
+    .option-btn:hover:not(:disabled) {
+      border-color: var(--primary);
+      background-color: #fff5f5;
+    }
+
+    .option-btn.correct {
+      background-color: #d4edda !important;
+      border-color: var(--correct) !important;
+      color: #155724 !important;
+    }
+
+    .option-btn.incorrect {
+      background-color: #f8d7da !important;
+      border-color: var(--incorrect) !important;
+      color: #721c24 !important;
+    }
+
+    .feedback-panel {
+      margin-top: 15px;
+      padding: 15px;
+      border-radius: 8px;
+      background-color: #f8f9fa;
+      display: none;
+    }
+
+    .feedback-panel.active {
+      display: block;
+    }
+
+    .product-link {
+      display: inline-block;
+      margin-top: 10px;
+      background-color: var(--primary);
+      color: white;
+      text-decoration: none;
+      padding: 8px 16px;
+      border-radius: 5px;
+      font-weight: bold;
+      font-size: 0.9rem;
+    }
+
+    .product-link:hover {
+      background-color: var(--primary-dark);
+    }
+
+    .next-btn, .restart-btn {
+      margin-top: 15px;
+      background-color: var(--primary);
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      font-size: 1rem;
+      font-weight: bold;
+      border-radius: 6px;
+      cursor: pointer;
+      width: 100%;
+    }
+
+    .next-btn:hover, .restart-btn:hover {
+      background-color: var(--primary-dark);
+    }
+
+    .game-over {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>Eurontuotteet.fi - Tuotevisa</h1>
+    <p>Tunnista mikä tuote on kuvassa!</p>
+  </header>
+
+  <div class="quiz-container" id="quiz-box">
+    <div class="score-board">
+      <span>Kysymys: <span id="current-question">1</span>/<span id="total-questions">6</span></span>
+      <span>Pisteet: <span id="score">0</span></span>
+    </div>
+
+    <div class="image-box">
+      <img id="product-image" src="" alt="Tuotekuva">
+    </div>
+
+    <div class="options-grid" id="options-container"></div>
+
+    <div class="feedback-panel" id="feedback-panel">
+      <div id="feedback-text" style="font-weight: bold; margin-bottom: 5px;"></div>
+      <div id="product-price-tag" style="color: var(--primary); font-weight: bold;"></div>
+      <a id="product-link" href="#" target="_blank" rel="noopener" class="product-link">Katso tuote Eurontuotteet.fi &rarr;</a>
+      <button class="next-btn" id="next-btn">Seuraava kysymys</button>
+    </div>
+  </div>
+
+  <div class="quiz-container game-over" id="game-over-box">
+    <h2>Peli päättyi!</h2>
+    <p style="font-size: 1.2rem;">Sait <strong id="final-score">0</strong> / <span id="max-score">0</span> oikein.</p>
+    <button class="restart-btn" id="restart-btn">Pelaa uudelleen</button>
+  </div>
+
+  <script>
+    const products = [
+      {
+        id: 1,
+        title: "Postituspussirulla B5 (190×250 mm), 10 kpl – BSTech",
+        price: "1 €",
+        image: "https://eurontuotteet.fi/wp-content/uploads/2026/08/JPEG_20260810_123031_7205124204292896785-300x300.jpg",
+        url: "https://eurontuotteet.fi/tuote/postituspussirulla-b5-190x250-mm-10-kpl-bstech/"
+      },
+      {
+        id: 2,
+        title: "Sininen korttikotelo RFID-suojauksella",
+        price: "1 €",
+        image: "https://eurontuotteet.fi/wp-content/uploads/2026/08/JPEG_20260810_114629_641527315550239086-300x300.jpg",
+        url: "https://eurontuotteet.fi/tuote/sininen-korttikotelo-rfid-suojauksella/"
+      },
+      {
+        id: 3,
+        title: "Tuikku 6kpl",
+        price: "1 €",
+        image: "https://eurontuotteet.fi/wp-content/uploads/2026/08/JPEG_20260810_114111_450368268339436085-300x300.jpg",
+        url: "https://eurontuotteet.fi/tuote/tuikku-6kpl/"
+      },
+      {
+        id: 4,
+        title: "Väriliidut 6kpl värityskuvilla",
+        price: "1 €",
+        image: "https://eurontuotteet.fi/wp-content/uploads/2026/08/JPEG_20260810_102410_6119503836154669324-300x300.jpg",
+        url: "https://eurontuotteet.fi/tuote/variliidut-6kpl-varityskuvilla/"
+      },
+      {
+        id: 5,
+        title: "Penaali",
+        price: "1 €",
+        image: "https://eurontuotteet.fi/wp-content/uploads/2026/08/JPEG_20260810_101027_6976305955212126828-300x300.jpg",
+        url: "https://eurontuotteet.fi/tuote/penaali/"
+      },
+      {
+        id: 6,
+        title: "Värikynäsetti",
+        price: "1 €",
+        image: "https://eurontuotteet.fi/wp-content/uploads/2026/08/JPEG_20260810_100854_2173241270444618165-300x300.jpg",
+        url: "https://eurontuotteet.fi/tuote/varikynasetti/"
+      }
+    ];
+
+    let currentQuestionIndex = 0;
+    let score = 0;
+    let shuffledQuestions = [];
+
+    const quizBox = document.getElementById('quiz-box');
+    const gameOverBox = document.getElementById('game-over-box');
+    const productImage = document.getElementById('product-image');
+    const optionsContainer = document.getElementById('options-container');
+    const feedbackPanel = document.getElementById('feedback-panel');
+    const feedbackText = document.getElementById('feedback-text');
+    const productPriceTag = document.getElementById('product-price-tag');
+    const productLink = document.getElementById('product-link');
+    const currentQuestionEl = document.getElementById('current-question');
+    const totalQuestionsEl = document.getElementById('total-questions');
+    const scoreEl = document.getElementById('score');
+    const nextBtn = document.getElementById('next-btn');
+    const restartBtn = document.getElementById('restart-btn');
+
+    function startQuiz() {
+      score = 0;
+      currentQuestionIndex = 0;
+      shuffledQuestions = [...products].sort(() => Math.random() - 0.5);
+      
+      quizBox.style.display = 'block';
+      gameOverBox.style.display = 'none';
+      totalQuestionsEl.textContent = shuffledQuestions.length;
+      
+      showQuestion();
+    }
+
+    function showQuestion() {
+      feedbackPanel.classList.remove('active');
+      optionsContainer.innerHTML = '';
+      scoreEl.textContent = score;
+      currentQuestionEl.textContent = currentQuestionIndex + 1;
+
+      const currentProduct = shuffledQuestions[currentQuestionIndex];
+      productImage.src = currentProduct.image;
+
+      // Generoidaan vaihtoetoehdot (oikea + 3 väärää satunnaista)
+      const wrongOptions = products
+        .filter(p => p.id !== currentProduct.id)
+        .sort(() => Math.random() - 0.5)
+        .slice(0, 3);
+
+      const allOptions = [currentProduct, ...wrongOptions].sort(() => Math.random() - 0.5);
+
+      allOptions.forEach(option => {
+        const btn = document.createElement('button');
+        btn.classList.add('option-btn');
+        btn.textContent = option.title;
+        btn.addEventListener('click', () => selectOption(btn, option, currentProduct));
+        optionsContainer.appendChild(btn);
+      });
+    }
+
+    function selectOption(selectedBtn, selectedProduct, correctProduct) {
+      const buttons = optionsContainer.querySelectorAll('.option-btn');
+      buttons.forEach(btn => btn.disabled = true);
+
+      if (selectedProduct.id === correctProduct.id) {
+        selectedBtn.classList.add('correct');
+        feedbackText.textContent = "Oikein!";
+        feedbackText.style.color = "var(--correct)";
+        score++;
+        scoreEl.textContent = score;
+      } else {
+        selectedBtn.classList.add('incorrect');
+        feedbackText.textContent = "Väärin!";
+        feedbackText.style.color = "var(--incorrect)";
+        
+        // Korostetaan oikea vastaus
+        buttons.forEach(btn => {
+          if (btn.textContent === correctProduct.title) {
+            btn.classList.add('correct');
+          }
+        });
+      }
+
+      productPriceTag.textContent = `Hinta: ${correctProduct.price}`;
+      productLink.href = correctProduct.url;
+      feedbackPanel.classList.add('active');
+    }
+
+    nextBtn.addEventListener('click', () => {
+      currentQuestionIndex++;
+      if (currentQuestionIndex < shuffledQuestions.length) {
+        showQuestion();
+      } else {
+        showGameOver();
+      }
+    });
+
+    function showGameOver() {
+      quizBox.style.display = 'none';
+      gameOverBox.style.display = 'block';
+      document.getElementById('final-score').textContent = score;
+      document.getElementById('max-score').textContent = shuffledQuestions.length;
+    }
+
+    restartBtn.addEventListener('click', startQuiz);
+
+    startQuiz();
+  </script>
+</body>
+</html>

@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="fi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Eurontuotteet.fi - Tuoteselain</title>
+  <style>
+    :root {
+      --primary: #d9232e;
+      --primary-dark: #b01a23;
+      --bg-color: #f4f6f8;
+      --card-bg: #ffffff;
+      --text-color: #333333;
+      --like-color: #28a745;
+      --nope-color: #dc3545;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      margin: 0;
+      padding: 0;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden; /* Estää sivun skrollauksen pyyhittäessä */
+    }
+
+    header {
+      text-align: center;
+      padding: 10px;
+      background: white;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+      z-index: 10;
+    }
+
+    header h1 {
+      color: var(--primary);
+      margin: 0 0 5px 0;
+      font-size: 1.2rem;
+    }
+
+    #game-status {
+      font-size: 0.9rem;
+      color: #666;
+    }
+
+    /* Korttipino */
+    .tinder-viewport {
+      flex: 1;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      perspective: 1000px;
+      padding: 20px;
+      position: relative;
+    }
+
+    .card-container {
+      position: relative;
+      width: 100%;
+      max-width: 350px;
+      height: 70vh; /* Kortin korkeus suhteessa ruutuun */
+      max-height: 500px;
+    }
+
+    /* Yksittäinen kortti */
+    .card {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      background: var(--card-bg);
+      border-radius: 15px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      
+      /* Animaatiot ja kosketus */
+      transition: transform 0.3s ease-out, opacity 0.3s ease-out;
+      cursor: grab;
+      touch-action: none; /* Tärkeä mobiilipyypäisylle */
+      
+      /* Estää tekstin valinnan vedettäessä */
+      -webkit-user-select: none;
+      user-select: none;
+    }
+
+    .card.dragging {
+      transition: none;
+      cursor: grabbing;
+    }
+
+    /* Tuotekuva */
+    .card-image {
+      width: 100%;
+      height: 60%;
+      background: #fafafa;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      box-sizing: border-box;
+      border-bottom: 1px solid #eee;
+    }
+
+    .card-image img {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+    }
+
+    /* Tuotetiedot */
+    .card-info {
+      padding: 20px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .card-title {
+      font-size: 1rem;
+      font-weight: bold;
+      margin: 0 0 10px 0;
+      line-height: 1.3;
+      /* Rajoitetaan rivejä, jos otsikko on pitkä */
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .card-price {
+      font-size: 1.3rem;
+      color: var(--primary);
+      font-weight: bold;
+      margin: 0;
+    }
+
+    /* Pyyhkäisyleimat (LIKE / NOPE) */
+    .stamp {
+      position: absolute;
+      top: 30px;
+      padding: 5px 15px;
+      border-radius: 5px;
+      font-weight: bold;
+      text-transform: uppercase;
+      font-size: 1.5rem;
+      opacity: 0;
+      border: 4px solid;
+      z-index: 5;
+      transform: rotate(-20deg);
+    }
+
+    .stamp.like {
+      left: 30px;
+      color: var(--like-color);
+      border-color: var(--like-color);
+    }
+
+    .stamp.nope {
+      right: 30px;
+      color: var(--nope-color);
+      border-color: var(--nope-color);
+      transform: rotate(20deg);
+    }
+
+    /* Painikkeet alareunassa */
+    .controls {
+      display: flex;
+      justify-content: center;
+      gap: 30px;
+      padding: 20px;
+      background: white;
+      box-shadow: 0 -2px 5px rgba(0,0,0,0.05);
+    }
+
+    .btn {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      border: none;
+      font-size: 1.5rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.1s;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    }
+
+    .btn:active {
+      transform: scale(0.9);
+    }
+
+    .btn-nope {
+      background-color: #fff;
+      color: var(--nope-color);
+      border: 2px solid var(--nope-color);
+    }
+    .btn-nope:hover { background-color: #fff1f1; }
+
+    .btn-like {
+      background-color: #fff;
+      color: var(--like-color);
+      border: 2px solid var(--like-color);
+    }
+    .btn-like:hover { background-color: #f1fff5; }
+
+    /* Tulossivu */
+    #results-screen {
+      display: none;
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: var(--bg-color);
+      z-index: 20;
+      overflow-y: auto;
+      padding: 20px;
+      box-sizing: border-box;
+      text-align: center;
+    }
+
+    #results-screen h2 { color: var(--primary); }
+
+    .liked-products-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 15px;
+      list-style: none;
+      padding: 0;
+      margin: 20px 0;
+    }
+
+    .liked-item {
+      background: white;
+      padding: 15px;
+      border-radius: 10px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      font-size: 0.8rem;
+    }
+
+    .liked-item img {
+      width: 80px;
+      height: 80px;
+      object-fit: contain;
+      margin-bottom: 10px;
+    }
+
+    .liked-item a {
+      color: white;
+      background: var(--primary);
+      text-decoration: none;
+      padding: 5px 10px;
+      border-radius: 4px;
+      margin-top: 5px;
+    }
+
+    .restart-btn {
+      background-color: #666;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>Tuoteselain</h1>
+    <div id="game-status">Pyyhkäise oikealle = Tykkää, Vasemmalle = Ohita</div>
+  </header>
+
+  <div class="tinder-viewport">
+    <div class="card-container" id="card-pinot">
+      <!-- Kortit luodaan JS:llä täne -->
+    </div>
+  </div>
+
+  <div class="controls">
+    <button class="btn btn-nope" id="nope-btn">✕</button>
+    <button class="btn btn-like" id="like-btn">❤</button>
+  </div>
+
+  <!-- Tulossivu -->
+  <div id="results-screen">
+    <h2>Lopetit selaamisen!</h2>
+    <p>Pidit näistä euron tuotteista:</p>
+    <ul class="liked-products-list" id="liked-list">
+      <!-- Tykätyt tuotteet JS:llä -->
+    </ul>
+    <button class="restart-btn" onclick="window.location.reload()">Aloita alusta</button>
+  </div>
+
+  <script>
+    // Tuotetiedot (Eurontuotteet.fi)
+    const products = [
+      { id: 1, title: "Postituspussirulla B5, 10 kpl", price: "1 €", image: "https://eurontuotteet.fi/wp-content/uploads/2026/08/JPEG_20260810_123031_7205124204292896785-300x300.jpg", url: "https://eurontuotteet.fi/tuote/postituspussirulla-b5-190x250-mm-10-kpl-bstech/" },
+      { id: 2, title: "Sininen korttikotelo RFID-suojalla", price: "1 €", image: "https://eurontuotteet.fi/wp-content/uploads/2026/08/JPEG_20260810_114629_641527315550239086-300x300.jpg", url: "https://eurontuotteet.fi/tuote/sininen-korttikotelo-rfid-suojauksella/" },
+      { id: 3, title: "Tuikku 6kpl", price: "1 €", image: "https://eurontuotteet.fi/wp-content/uploads/2026/08/JPEG_20260810_114111_450368268339436085-300x300.jpg", url: "https://eurontuotteet.fi/tuote/tuikku-6kpl/" },
+      { id: 4, title: "Väriliidut 6kpl värityskuvilla", price: "1 €", image: "https://eurontuotteet.fi/wp-content/uploads/2026/08/JPEG_20260810_102410_6119503836154669324-300x300.jpg", url: "https://eurontuotteet.fi/tuote/variliidut-6kpl-varityskuvilla/" },
+      { id: 5, title: "Penaali", price: "1 €", image: "https://eurontuotteet.fi/wp-content/uploads/2026/08/JPEG_20260810_101027_6976305955212126828-300x300.jpg", url: "https://eurontuotteet.fi/tuote/penaali/" },
+      { id: 6, title: "Värikynäsetti", price: "1 €", image: "https://eurontuotteet.fi/wp-content/uploads/2026/08/JPEG_20260810_100854_2173241270444618165-300x300.jpg", url: "https://eurontuotteet.fi/tuote/varikynasetti/" }
+    ];
+
+    const pino = document.getElementById('card-pinot');
+    const likedList = document.getElementById('liked-list');
+    const resultsScreen = document.getElementById('results-screen');
+    const statusText = document.getElementById('game-status');
+    
+    let likedProducts = [];
+    let currentCard = null;
+
+    // --- PELIN ALUSTUS ---
+    function createCards() {
+      // Luodaan kortit pinoon käänteisessä järjestyksessä (alin ensin)
+      [...products].reverse().forEach(product => {
+        const card = document.createElement('div');
+        card.classList.add('card');
+        card.dataset.id = product.id;
+
+        card.innerHTML = `
+          <div class="stamp like">Tykkään</div>
+          <div class="stamp nope">Ohita</div>
+          <div class="card-image">
+            <img src="${product.image}" alt="${product.title}" draggable="false">
+          </div>
+          <div class="card-info">
+            <p class="card-title">${product.title}</p>
+            <p class="card-price">${product.price}</p>
+          </div>
+        `;
+        
+        pino.appendChild(card);
+        initDragEvents(card);
+      });
+      updateTopCard();
+    }
+
+    // Asetetaan päällimmäinen kortti muuttujaan
+    function updateTopCard() {
+      const cards = pino.querySelectorAll('.card:not(.removed)');
+      if (cards.length > 0) {
+        currentCard = cards[cards.length - 1]; // Viimeinen dom-elementti on päällimmäinen
+        statusText.textContent = `Tuotteita jäljellä: ${cards.length}`;
+      } else {
+        currentCard = null;
+        showResults();
+      }
+    }
+
+    // --- PYYHKÄISYLOGIIKKA (Drag & Drop) ---
+    let startX = 0; // Kosketuksen/klikauksen alkupiste X
+    let currentX = 0; // Nykyinen X-piste vedettäessä
+    let isDragging = false;
+
+    function initDragEvents(card) {
+      // Hiiritapahtumat
+      card.addEventListener('mousedown', (e) => dragStart(e, false));
+      // Kosketustapahtumat (mobiili)
+      card.addEventListener('touchstart', (e) => dragStart(e, true));
+    }
+
+    // Yhteinen aloitusfunktio hiirelle ja kosketukselle
+    function dragStart(e, isTouch) {
+      if (currentCard !== e.currentTarget || isDragging) return;
+      
+      isDragging = true;
+      currentCard.classList.add('dragging');
+      
+      // Tallennetaan alkupiste
+      startX = isTouch ? e.touches[0].clientX : e.clientX;
+      currentX = startX;
+
+      // Lisätään kuuntelijat dokumenttiin (jotta veto voi jatkua kortin ulkopuolelle)
+      if (isTouch) {
+        document.addEventListener('touchmove', dragMove);
+        document.addEventListener('touchend', dragEnd);
+      } else {
+        document.addEventListener('mousemove', dragMove);
+        document.addEventListener('mouseup', dragEnd);
+      }
+    }
+
+    function dragMove(e) {
+      if (!isDragging || !currentCard) return;
+      
+      // Lasketaan nykyinen piste (huomioidaan e.touches mobiilissa)
+      const x = e.touches ? e.touches[0].clientX : e.clientX;
+      const pullX = x - startX; // Paljonko vedetty alkupisteestä
+
+      // Liikutetaan ja pyöritetään korttia vedon mukaan
+      const rotation = pullX / 10; // Pyörimiskerroin
+      currentCard.style.transform = `translateX(${pullX}px) rotate(${rotation}deg)`;
+
+      // Näytetään LIKE / NOPE leimat vetovoiman mukaan
+      const stampLike = currentCard.querySelector('.stamp.like');
+      const stampNope = currentCard.querySelector('.stamp.nope');
+      const threshold = 100; // Raja, jolloin leima näkyy täysin
+
+      if (pullX > 0) { // Vedetään oikealle (Like)
+        stampLike.style.opacity = Math.min(pullX / threshold, 1);
+        stampNope.style.opacity = 0;
+      } else if (pullX < 0) { // Vedetään vasemmalle (Nope)
+        stampNope.style.opacity = Math.min(Math.abs(pullX) / threshold, 1);
+        stampLike.style.opacity = 0;
+      }
+    }
+
+    function dragEnd(e) {
+      if (!isDragging || !currentCard) return;
+      
+      isDragging = false;
+      currentCard.classList.remove('dragging');
+      
+      const pullX = (e.changedTouches ? e.changedTouches[0].clientX : e.clientX) - startX;
+      const decisionThreshold = 120; // Raja, jolloin kortti poistetaan
+
+      if (pullX > decisionThreshold) {
+        // Pyyhkäisy oikealle -> LIKE
+        handleDecision(true);
+      } else if (pullX < -decisionThreshold) {
+        // Pyyhkäisy vasemmalle -> NOPE
+        handleDecision(false);
+      } else {
+        // Ei tarpeeksi vetoa -> Palauta kortti keskelle
+        currentCard.style.transform = '';
+        currentCard.querySelector('.stamp.like').style.opacity = 0;
+        currentCard.querySelector('.stamp.nope').style.opacity = 0;
+      }
+
+      // Poistetaan dokumentin kuuntelijat
+      document.removeEventListener('mousemove', dragMove);
+      document.removeEventListener('mouseup', dragEnd);
+      document.removeEventListener('touchmove', dragMove);
+      document.removeEventListener('touchend', dragEnd);
+    }
+
+    // --- PÄÄTÖKSENTEKO (Animaatio + Tallennus) ---
+    function handleDecision(isLike) {
+      if (!currentCard) return;
+
+      const card = currentCard;
+      const productId = parseInt(card.dataset.id);
+      
+      card.classList.add('removed');
+
+      if (isLike) {
+        // Animaatio oikealle ulos
+        card.style.transform = 'translateX(1000px) rotate(30deg)';
+        card.querySelector('.stamp.like').style.opacity = 1;
+        // Tallennetaan tykätty tuote
+        const product = products.find(p => p.id === productId);
+        likedProducts.push(product);
+      } else {
+        // Animaatio vasemmalle ulos
+        card.style.transform = 'translateX(-1000px) rotate(-30deg)';
+        card.querySelector('.stamp.nope').style.opacity = 1;
+      }
+
+      // Odotetaan animaation loppua ja päivitetään pino
+      setTimeout(() => {
+        if (card.parentNode) card.parentNode.removeChild(card);
+        updateTopCard();
+      }, 300);
+    }
+
+    // Painikenupit (mobiiliystävällisyyden vuoksi)
+    document.getElementById('like-btn').addEventListener('click', () => handleDecision(true));
+    document.getElementById('nope-btn').addEventListener('click', () => handleDecision(false));
+
+    // --- TULOKSET ---
+    function showResults() {
+      header.style.display = 'none';
+      document.querySelector('.tinder-viewport').style.display = 'none';
+      document.querySelector('.controls').style.display = 'none';
+      resultsScreen.style.display = 'block';
+      statusText.textContent = "Peli loppui.";
+
+      if (likedProducts.length === 0) {
+        likedList.innerHTML = "<p>Et tykännyt mistään tällä kertaa.</p>";
+        return;
+      }
+
+      likedProducts.forEach(product => {
+        const li = document.createElement('li');
+        li.classList.add('liked-item');
+        li.innerHTML = `
+          <img src="${product.image}" alt="${product.title}">
+          <strong>${product.title}</strong>
+          <span style="color:var(--primary); font-weight:bold; margin: 5px 0;">${product.price}</span>
+          <a href="${product.url}" target="_blank">Osta &rarr;</a>
+        `;
+        likedList.appendChild(li);
+      });
+    }
+
+    // Käynnistä peli
+    createCards();
+
+  </script>
+</body>
+</html>

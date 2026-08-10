@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="fi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Eurontuotteet.fi - Onnenpyörä</title>
+  <style>
+    :root {
+      --primary: #d9232e;
+      --primary-dark: #b01a23;
+      --bg-color: #f4f6f8;
+      --text-color: #333333;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      margin: 0;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    h1 {
+      color: var(--primary);
+      margin-bottom: 5px;
+    }
+
+    .wheel-container {
+      position: relative;
+      width: 350px;
+      height: 350px;
+      margin-bottom: 20px;
+    }
+
+    .pointer {
+      position: absolute;
+      top: -15px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 0;
+      height: 0;
+      border-left: 15px solid transparent;
+      border-right: 15px solid transparent;
+      border-top: 25px solid var(--primary);
+      z-index: 10;
+    }
+
+    canvas {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+      transition: transform 4s cubic-bezier(0.15, 0.99, 0.35, 1);
+    }
+
+    button {
+      background-color: var(--primary);
+      color: white;
+      border: none;
+      padding: 12px 28px;
+      font-size: 1.1rem;
+      font-weight: bold;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background-color 0.2s, transform 0.1s;
+    }
+
+    button:hover {
+      background-color: var(--primary-dark);
+    }
+
+    button:disabled {
+      background-color: #ccc;
+      cursor: not-allowed;
+    }
+
+    .result-modal {
+      margin-top: 25px;
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      max-width: 350px;
+      width: 100%;
+      text-align: center;
+      display: none;
+      box-sizing: border-box;
+    }
+
+    .result-modal img {
+      width: 150px;
+      height: 150px;
+      object-fit: contain;
+      border-radius: 8px;
+      margin: 10px 0;
+    }
+
+    .result-title {
+      font-weight: bold;
+      font-size: 1.1rem;
+      margin-bottom: 5px;
+    }
+
+    .result-price {
+      color: var(--primary);
+      font-weight: bold;
+      font-size: 1.2rem;
+      margin-bottom: 15px;
+    }
+
+    .product-link {
+      display: inline-block;
+      background-color: var(--primary);
+      color: white;
+      text-decoration: none;
+      padding: 8px 16px;
+      border-radius: 4px;
+      font-weight: bold;
+      font-size: 0.9rem;
+    }
+
+    .product-link:hover {
+      background-color: var(--primary-dark);
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>Eurontuotteet.fi - Onnenpyörä</h1>
+    <p>Pyöräytä pyörää ja katso, minkä euron tuotteen voitat!</p>
+  </header>
+
+  <div class="wheel-container">
+    <div class="pointer"></div>
+    <canvas id="wheel" width="400" height="400"></canvas>
+  </div>
+
+  <button id="spin-btn">Pyöräytä!</button>
+
+  <div class="result-modal" id="result-card">
+    <h2 style="margin-top: 0; color: var(--primary);">Pyörä pysähtyi!</h2>
+    <img id="result-img" src="" alt="Tuotekuva">
+    <div class="result-title" id="result-title"></div>
+    <div class="result-price" id="result-price"></div>
+    <a id="result-link" href="#" target="_blank" rel="noopener" class="product-link">Osta Eurontuotteet.fi -kaupasta &rarr;</a>
+  </div>
+
+  <script>
+    const products = [
+      {
+        id: 1,
+        title: "Postituspussirulla B5 (190×250 mm), 10 kpl – BSTech",
+        price: "1 €",
+        image: "https://eurontuotteet.fi/wp-content/uploads/2026/08/JPEG_20260810_123031_7205124204292896785-300x300.jpg",
+        url: "https://eurontuotteet.fi/tuote/postituspussirulla-b5-190x250-mm-10-kpl-bstech/"
+      },
+      {
+        id: 2,
+        title: "Sininen korttikotelo RFID-suojauksella",
+        price: "1 €",
+        image: "https://eurontuotteet.fi/wp-content/uploads/2026/08/JPEG_20260810_114629_641527315550239086-300x300.jpg",
+        url: "https://eurontuotteet.fi/tuote/sininen-korttikotelo-rfid-suojauksella/"
+      },
+      {
+        id: 3,
+        title: "Tuikku 6kpl",
+        price: "1 €",
+        image: "https://eurontuotteet.fi/wp-content/uploads/2026/08/JPEG_20260810_114111_450368268339436085-300x300.jpg",
+        url: "https://eurontuotteet.fi/tuote/tuikku-6kpl/"
+      },
+      {
+        id: 4,
+        title: "Väriliidut 6kpl värityskuvilla",
+        price: "1 €",
+        image: "https://eurontuotteet.fi/wp-content/uploads/2026/08/JPEG_20260810_102410_6119503836154669324-300x300.jpg",
+        url: "https://eurontuotteet.fi/tuote/variliidut-6kpl-varityskuvilla/"
+      },
+      {
+        id: 5,
+        title: "Penaali",
+        price: "1 €",
+        image: "https://eurontuotteet.fi/wp-content/uploads/2026/08/JPEG_20260810_101027_6976305955212126828-300x300.jpg",
+        url: "https://eurontuotteet.fi/tuote/penaali/"
+      },
+      {
+        id: 6,
+        title: "Värikynäsetti",
+        price: "1 €",
+        image: "https://eurontuotteet.fi/wp-content/uploads/2026/08/JPEG_20260810_100854_2173241270444618165-300x300.jpg",
+        url: "https://eurontuotteet.fi/tuote/varikynasetti/"
+      }
+    ];
+
+    const canvas = document.getElementById('wheel');
+    const ctx = canvas.getContext('2d');
+    const spinBtn = document.getElementById('spin-btn');
+    const resultCard = document.getElementById('result-card');
+    
+    const numSegments = products.length;
+    const arcSize = (2 * Math.PI) / numSegments;
+    const colors = ['#d9232e', '#ffffff', '#b01a23', '#ffffff', '#e64c55', '#ffffff'];
+    
+    let currentRotation = 0;
+
+    function drawWheel() {
+      const centerX = canvas.width / 2;
+      const centerY = canvas.height / 2;
+      const radius = canvas.width / 2 - 10;
+
+      for (let i = 0; i < numSegments; i++) {
+        const angle = i * arcSize;
+        ctx.beginPath();
+        ctx.fillStyle = colors[i % colors.length];
+        ctx.moveTo(centerX, centerY);
+        ctx.arc(centerX, centerY, radius, angle, angle + arcSize);
+        ctx.lineTo(centerX, centerY);
+        ctx.fill();
+        ctx.strokeStyle = '#cccccc';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        // Teksti pyörään
+        ctx.save();
+        ctx.translate(centerX, centerY);
+        ctx.rotate(angle + arcSize / 2);
+        ctx.textAlign = 'right';
+        ctx.fillStyle = (colors[i % colors.length] === '#ffffff') ? '#333333' : '#ffffff';
+        ctx.font = 'bold 14px sans-serif';
+        
+        // Lyhennetään otsikkoa pyörään sopivaksi
+        let shortTitle = products[i].title.split(' ')[0];
+        ctx.fillText(shortTitle, radius - 20, 5);
+        ctx.restore();
+      }
+    }
+
+    function spin() {
+      spinBtn.disabled = true;
+      resultCard.style.display = 'none';
+
+      // Arotaan satunnainen tuote (0 - numSegments-1)
+      const winningIndex = Math.floor(Math.random() * numSegments);
+      
+      // Lasketaan pyörähdyksen kulma asteina
+      const segmentAngleDeg = 360 / numSegments;
+      // Osoitin osoittaa ylöspäin (270 astetta ympyrällä), huomioidaan se laskennassa:
+      const targetSegmentCenter = winningIndex * segmentAngleDeg + (segmentAngleDeg / 2);
+      const targetRotation = 360 * 5 + (360 - targetSegmentCenter) - 90; 
+
+      currentRotation += targetRotation;
+      canvas.style.transform = `rotate(${currentRotation}deg)`;
+
+      setTimeout(() => {
+        showResult(products[winningIndex]);
+        spinBtn.disabled = false;
+      }, 4000);
+    }
+
+    function showResult(product) {
+      document.getElementById('result-img').src = product.image;
+      document.getElementById('result-title').textContent = product.title;
+      document.getElementById('result-price').textContent = product.price;
+      document.getElementById('result-link').href = product.url;
+      resultCard.style.display = 'block';
+    }
+
+    spinBtn.addEventListener('click', spin);
+    drawWheel();
+  </script>
+</body>
+</html>

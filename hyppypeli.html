@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="fi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vaakajuoksupeli</title>
+  <style>
+    :root {
+      --primary: #d9232e;
+      --bg-color: #f4f6f8;
+      --text-color: #333333;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+      user-select: none;
+    }
+
+    header { text-align: center; margin-bottom: 15px; }
+    h1 { color: var(--primary); margin-bottom: 5px; }
+
+    .game-container {
+      position: relative;
+      width: 100%;
+      max-width: 600px;
+    }
+
+    canvas {
+      background: linear-gradient(180deg, #87CEEB 0%, #E0F6FF 75%, #4CAF50 75%, #388E3C 100%);
+      border: 3px solid var(--primary);
+      border-radius: 10px;
+      display: block;
+      width: 100%;
+      height: auto;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      touch-action: none;
+    }
+
+    .info-bar {
+      display: flex;
+      justify-content: space-between;
+      width: 100%;
+      max-width: 600px;
+      font-size: 1.1rem;
+      font-weight: bold;
+      margin-bottom: 10px;
+      background: white;
+      padding: 10px 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+    }
+
+    .controls-hint {
+      margin-top: 10px;
+      font-size: 0.9rem;
+      color: #555;
+    }
+
+    .btn {
+      background-color: var(--primary);
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      font-size: 1rem;
+      font-weight: bold;
+      border-radius: 6px;
+      cursor: pointer;
+      margin-top: 15px;
+      transition: background-color 0.2s;
+    }
+
+    .btn:hover { background-color: #b01a23; }
+
+    .btn-download {
+      background-color: #28a745;
+      margin-left: 10px;
+    }
+
+    .btn-download:hover { background-color: #218838; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>Vaakajuoksupeli</h1>
+    <p>Hypi esteiden yli ja kerää euron kolikoita!</p>
+  </header>
+
+  <div class="info-bar">
+    <div>Pisteet: <span id="score">0</span></div>
+    <div>Kolikot: <span id="coins">0</span></div>
+  </div>
+
+  <div class="game-container">
+    <canvas id="gameCanvas" width="600" height="300"></canvas>
+  </div>
+
+  <div class="controls-hint">Paina <strong>Välilyöntiä</strong>, <strong>Nuoli ylös</strong> -näppäintä tai kosketa ruutua hyppääksesi.</div>
+
+  <div id="btn-group">
+    <button class="btn" onclick="startGame()">Aloita alusta</button>
+    <button class="btn btn-download" id="download-btn" onclick="downloadScore()" style="display:none;">Lataa pisteet (.txt)</button>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+
+    const GROUND_Y = 225;
+    let gameSpeed = 5;
+    let score = 0;
+    let coinsCollected = 0;
+    let isGameOver = false;
+    let frameCount = 0;
+    let animationFrameId;
+
+    const player = {
+      x: 50,
+      y: GROUND_Y - 40,
+      width: 30,
+      height: 40,
+      velocityY: 0,
+      gravity: 0.6,
+      jumpStrength: -12,
+      isGrounded: true
+    };
+
+    let obstacles = [];
+    let coins = [];
+
+    function jump() {
+      if (player.isGrounded && !isGameOver) {
+        player.velocityY = player.jumpStrength;
+        player.isGrounded = false;
+      }
+    }
+
+    function spawnObstacle() {
+      const height = 30 + Math.random() * 25;
+      obstacles.push({
+        x: canvas.width,
+        y: GROUND_Y - height,
+        width: 25,
+        height: height
+      });
+    }
+
+    function spawnCoin() {
+      const coinY = GROUND_Y - 50 - Math.random() * 70;
+      coins.push({
+        x: canvas.width,
+        y: coinY,
+        radius: 10
+      });
+    }
+
+    function update() {
+      if (isGameOver) return;
+
+      frameCount++;
+      score++;
+      document.getElementById('score').textContent = score;
+
+      // Pelaajan fysiikka
+      player.velocityY += player.gravity;
+      player.y += player.velocityY;
+
+      if (player.y >= GROUND_Y - player.height) {
+        player.y = GROUND_Y - player.height;
+        player.velocityY = 0;
+        player.isGrounded = true;
+      }
+
+      // Esteiden luonti ja liike
+      if (frameCount % 100 === 0) {
+        spawnObstacle();
+      }
+
+      for (let i = obstacles.length - 1; i >= 0; i--) {
+        let obs = obstacles[i];
+        obs.x -= gameSpeed;
+
+        // Osumatunnistus esteeseen
+        if (
+          player.x < obs.x + obs.width &&
+          player.x + player.width > obs.x &&
+          player.y < obs.y + obs.height &&
+          player.y + player.height > obs.y
+        ) {
+          endGame();
+          return;
+        }
+
+        if (obs.x + obs.width < 0) {
+          obstacles.splice(i, 1);
+        }
+      }
+
+      // Kolikoiden luonti ja liike
+      if (frameCount % 130 === 0) {
+        spawnCoin();
+      }
+
+      for (let i = coins.length - 1; i >= 0; i--) {
+        let coin = coins[i];
+        coin.x -= gameSpeed;
+
+        // Osumatunnistus kolikkoon
+        const distX = (player.x + player.width / 2) - coin.x;
+        const distY = (player.y + player.height / 2) - coin.y;
+        const distance = Math.sqrt(distX * distX + distY * distY);
+
+        if (distance < coin.radius + player.width / 2) {
+          coinsCollected++;
+          score += 50;
+          document.getElementById('coins').textContent = coinsCollected;
+          coins.splice(i, 1);
+          continue;
+        }
+
+        if (coin.x + coin.radius < 0) {
+          coins.splice(i, 1);
+        }
+      }
+
+      // Pelin nopeuttaminen ajan myötä
+      if (frameCount % 500 === 0) {
+        gameSpeed += 0.5;
+      }
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Maanpinta
+      ctx.fillStyle = '#388E3C';
+      ctx.fillRect(0, GROUND_Y, canvas.width, canvas.height - GROUND_Y);
+
+      // Pelaaja
+      ctx.fillStyle = '#d9232e';
+      ctx.fillRect(player.x, player.y, player.width, player.height);
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(player.x + 18, player.y + 8, 6, 6);
+
+      // Esteet
+      ctx.fillStyle = '#555555';
+      obstacles.forEach(obs => {
+        ctx.fillRect(obs.x, obs.y, obs.width, obs.height);
+      });
+
+      // Kolikot
+      coins.forEach(coin => {
+        ctx.fillStyle = '#FFD700';
+        ctx.beginPath();
+        ctx.arc(coin.x, coin.y, coin.radius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#B8860B';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        ctx.fillStyle = '#B8860B';
+        ctx.font = 'bold 10px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('€', coin.x, coin.y);
+      });
+
+      // Game Over -ruutu
+      if (isGameOver) {
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 26px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('Peli päättyi!', canvas.width / 2, canvas.height / 2 - 20);
+
+        ctx.font = '16px sans-serif';
+        ctx.fillText(`Kokonaispisteet: ${score} | Kolikot: ${coinsCollected}`, canvas.width / 2, canvas.height / 2 + 15);
+      }
+    }
+
+    function gameLoop() {
+      update();
+      draw();
+      if (!isGameOver) {
+        animationFrameId = requestAnimationFrame(gameLoop);
+      }
+    }
+
+    function endGame() {
+      isGameOver = true;
+      document.getElementById('download-btn').style.display = 'inline-block';
+      draw();
+      downloadScore();
+    }
+
+    function downloadScore() {
+      const date = new Date().toLocaleString('fi-FI');
+      const textContent = 
+`--- PELITULOS ---
+Päivämäärä: ${date}
+Kokonaispisteet: ${score}
+Kerätyt kolikot: ${coinsCollected}
+-----------------`;
+
+      const blob = new Blob([textContent], { type: 'text/plain;charset=utf-8' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = `pisteet_${score}.txt`;
+      link.click();
+      URL.revokeObjectURL(link.href);
+    }
+
+    function startGame() {
+      cancelAnimationFrame(animationFrameId);
+      score = 0;
+      coinsCollected = 0;
+      gameSpeed = 5;
+      frameCount = 0;
+      isGameOver = false;
+      obstacles = [];
+      coins = [];
+
+      player.y = GROUND_Y - player.height;
+      player.velocityY = 0;
+      player.isGrounded = true;
+
+      document.getElementById('score').textContent = score;
+      document.getElementById('coins').textContent = coinsCollected;
+      document.getElementById('download-btn').style.display = 'none';
+
+      gameLoop();
+    }
+
+    window.addEventListener('keydown', (e) => {
+      if (e.code === 'Space' || e.code === 'ArrowUp') {
+        e.preventDefault();
+        jump();
+      }
+    });
+
+    canvas.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      jump();
+    });
+
+    canvas.addEventListener('mousedown', () => {
+      jump();
+    });
+
+    startGame();
+  </script>
+
+</body>
+</html>

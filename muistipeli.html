@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="fi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Eurontuotteet.fi - Muistipeli</title>
+  <style>
+    :root {
+      --primary: #d9232e;
+      --primary-dark: #b01a23;
+      --bg-color: #f4f6f8;
+      --card-bg: #ffffff;
+      --text-color: #333333;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      margin: 0;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    h1 {
+      color: var(--primary);
+      margin-bottom: 5px;
+    }
+
+    .stats-bar {
+      display: flex;
+      gap: 20px;
+      font-size: 1.1rem;
+      font-weight: bold;
+      margin-bottom: 15px;
+      background: white;
+      padding: 10px 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+
+    .controls {
+      margin-bottom: 20px;
+    }
+
+    button {
+      background-color: var(--primary);
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      font-size: 1rem;
+      font-weight: bold;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+
+    button:hover {
+      background-color: var(--primary-dark);
+    }
+
+    .game-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 15px;
+      max-width: 800px;
+      width: 100%;
+      perspective: 1000px;
+    }
+
+    @media (max-width: 600px) {
+      .game-grid {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 10px;
+      }
+    }
+
+    .card {
+      aspect-ratio: 1;
+      position: relative;
+      transform-style: preserve-3d;
+      transition: transform 0.5s;
+      cursor: pointer;
+    }
+
+    .card.flipped, .card.matched {
+      transform: rotateY(180deg);
+    }
+
+    .card-face {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      backface-visibility: hidden;
+      border-radius: 10px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+      padding: 10px;
+      box-sizing: border-box;
+      text-align: center;
+    }
+
+    .card-front {
+      background-color: var(--primary);
+      color: white;
+      font-size: 2rem;
+      font-weight: bold;
+    }
+
+    .card-back {
+      background-color: var(--card-bg);
+      transform: rotateY(180deg);
+      border: 2px solid #e0e0e0;
+      justify-content: space-between;
+    }
+
+    .card-back img {
+      max-width: 80%;
+      max-height: 50%;
+      object-fit: contain;
+    }
+
+    .product-title {
+      font-size: 0.85rem;
+      font-weight: 600;
+      margin: 5px 0 2px 0;
+      line-height: 1.1;
+    }
+
+    .product-price {
+      font-size: 0.9rem;
+      color: var(--primary);
+      font-weight: bold;
+    }
+
+    .product-link {
+      font-size: 0.75rem;
+      color: #0066cc;
+      text-decoration: none;
+      margin-top: 2px;
+      padding: 2px 6px;
+      background: #eef5ff;
+      border-radius: 4px;
+    }
+
+    .product-link:hover {
+      text-decoration: underline;
+    }
+
+    .matched-products {
+      margin-top: 30px;
+      max-width: 800px;
+      width: 100%;
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+      display: none;
+    }
+
+    .matched-products h2 {
+      margin-top: 0;
+      color: var(--primary);
+    }
+
+    .matched-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 15px;
+      list-style: none;
+      padding: 0;
+    }
+
+    .matched-item {
+      border: 1px solid #eee;
+      border-radius: 8px;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+    }
+
+    .matched-item img {
+      width: 80px;
+      height: 80px;
+      object-fit: contain;
+      margin-bottom: 8px;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>Eurontuotteet.fi - Muistipeli</h1>
+    <p>Löydä parit ja tutustu verkkokaupan tuotteisiin!</p>
+  </header>
+
+  <div class="stats-bar">
+    <div>Siirrot: <span id="moves">0</span></div>
+    <div>Löydetyt parit: <span id="matches">0</span> / <span id="total-pairs">6</span></div>
+  </div>
+
+  <div class="controls">
+    <button id="restart-btn">Aloita alusta</button>
+  </div>
+
+  <div class="game-grid" id="game-grid"></div>
+
+  <section class="matched-products" id="matched-section">
+    <h2>Löytämäsi tuotteet:</h2>
+    <ul class="matched-list" id="matched-list"></ul>
+  </section>
+
+  <script>
+    const products = [
+      {
+        id: 1,
+        title: "LED-otsalamppu ladattava",
+        price: "9.90 €",
+        image: "https://via.placeholder.com/150/d9232e/ffffff?text=Otsalamppu",
+        url: "https://eurontuotteet.fi"
+      },
+      {
+        id: 2,
+        title: "Monitoimityökalu 12-in-1",
+        price: "12.50 €",
+        image: "https://via.placeholder.com/150/d9232e/ffffff?text=Tyokalu",
+        url: "https://eurontuotteet.fi"
+      },
+      {
+        id: 3,
+        title: "Keittiön digitaalivaaka",
+        price: "8.90 €",
+        image: "https://via.placeholder.com/150/d9232e/ffffff?text=Vaaka",
+        url: "https://eurontuotteet.fi"
+      },
+      {
+        id: 4,
+        title: "Bluetooth-matkakaiutin",
+        price: "14.90 €",
+        image: "https://via.placeholder.com/150/d9232e/ffffff?text=Kaiutin",
+        url: "https://eurontuotteet.fi"
+      },
+      {
+        id: 5,
+        title: "Paristokäyttöinen valosarja",
+        price: "4.90 €",
+        image: "https://via.placeholder.com/150/d9232e/ffffff?text=Valosarja",
+        url: "https://eurontuotteet.fi"
+      },
+      {
+        id: 6,
+        title: "USB-C Pikalatauskaapeli 2m",
+        price: "3.90 €",
+        image: "https://via.placeholder.com/150/d9232e/ffffff?text=Kaapeli",
+        url: "https://eurontuotteet.fi"
+      }
+    ];
+
+    let cardsData = [];
+    let flippedCards = [];
+    let matchedPairs = 0;
+    let moves = 0;
+    let lockBoard = false;
+
+    const grid = document.getElementById('game-grid');
+    const movesEl = document.getElementById('moves');
+    const matchesEl = document.getElementById('matches');
+    const totalPairsEl = document.getElementById('total-pairs');
+    const restartBtn = document.getElementById('restart-btn');
+    const matchedSection = document.getElementById('matched-section');
+    const matchedList = document.getElementById('matched-list');
+
+    totalPairsEl.textContent = products.length;
+
+    function initGame() {
+      grid.innerHTML = '';
+      matchedList.innerHTML = '';
+      matchedSection.style.display = 'none';
+      flippedCards = [];
+      matchedPairs = 0;
+      moves = 0;
+      lockBoard = false;
+      movesEl.textContent = moves;
+      matchesEl.textContent = matchedPairs;
+
+      // Luodaan parit ja sekoitetaan
+      cardsData = [...products, ...products]
+        .map((product, index) => ({ ...product, uniqueId: index }))
+        .sort(() => Math.random() - 0.5);
+
+      cardsData.forEach(item => {
+        const card = document.createElement('div');
+        card.classList.add('card');
+        card.dataset.id = item.id;
+        card.dataset.uniqueId = item.uniqueId;
+
+        card.innerHTML = `
+          <div class="card-face card-front">€</div>
+          <div class="card-face card-back">
+            <img src="${item.image}" alt="${item.title}">
+            <div class="product-title">${item.title}</div>
+            <div class="product-price">${item.price}</div>
+            <a href="${item.url}" target="_blank" rel="noopener" class="product-link" onclick="event.stopPropagation()">Siirry kauppaan &rarr;</a>
+          </div>
+        `;
+
+        card.addEventListener('click', () => flipCard(card, item));
+        grid.appendChild(card);
+      });
+    }
+
+    function flipCard(card, item) {
+      if (lockBoard || card.classList.contains('flipped') || card.classList.contains('matched')) return;
+
+      card.classList.add('flipped');
+      flippedCards.push({ card, item });
+
+      if (flippedCards.length === 2) {
+        moves++;
+        movesEl.textContent = moves;
+        checkMatch();
+      }
+    }
+
+    function checkMatch() {
+      const [first, second] = flippedCards;
+      const isMatch = first.item.id === second.item.item ? false : first.item.id === second.item.id;
+
+      if (isMatch) {
+        first.card.classList.add('matched');
+        second.card.classList.add('matched');
+        matchedPairs++;
+        matchesEl.textContent = matchedPairs;
+        addMatchedProductToList(first.item);
+        flippedCards = [];
+
+        if (matchedPairs === products.length) {
+          setTimeout(() => {
+            alert(`Onneksi olkoon! Läpäisit pelin ${moves} siirrolla.`);
+          }, 400);
+        }
+      } else {
+        lockBoard = true;
+        setTimeout(() => {
+          first.card.classList.remove('flipped');
+          second.card.classList.remove('flipped');
+          flippedCards = [];
+          lockBoard = false;
+        }, 1000);
+      }
+    }
+
+    function addMatchedProductToList(product) {
+      matchedSection.style.display = 'block';
+      const li = document.createElement('li');
+      li.classList.add('matched-item');
+      li.innerHTML = `
+        <img src="${product.image}" alt="${product.title}">
+        <strong>${product.title}</strong>
+        <span style="color: var(--primary); font-weight: bold; margin: 4px 0;">${product.price}</span>
+        <a href="${product.url}" target="_blank" rel="noopener" class="product-link">Katso tuote Eurontuotteet.fi</a>
+      `;
+      matchedList.appendChild(li);
+    }
+
+    restartBtn.addEventListener('click', initGame);
+
+    // Käynnistetään peli latautuessa
+    initGame();
+  </script>
+</body>
+</html>

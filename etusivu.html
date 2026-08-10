@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="fi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Eurontuotteet.fi - Tervetuloa Peliareenalle</title>
+  <style>
+    :root {
+      --primary: #d9232e;
+      --primary-dark: #b01a23;
+      --bg-color: #f4f6f8;
+      --card-bg: #ffffff;
+      --text-color: #333333;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      line-height: 1.6;
+      padding: 30px 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .hero {
+      text-align: center;
+      max-width: 700px;
+      margin-bottom: 40px;
+    }
+
+    .hero h1 {
+      color: var(--primary);
+      font-size: 2.2rem;
+      margin-bottom: 10px;
+    }
+
+    .hero p {
+      font-size: 1.1rem;
+      color: #555;
+    }
+
+    .games-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 20px;
+      max-width: 900px;
+      width: 100%;
+      margin-bottom: 40px;
+    }
+
+    .game-card {
+      background: var(--card-bg);
+      border-radius: 12px;
+      padding: 25px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      text-align: center;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .game-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+    }
+
+    .game-icon {
+      font-size: 2.5rem;
+      margin-bottom: 15px;
+    }
+
+    .game-card h2 {
+      font-size: 1.3rem;
+      color: var(--primary);
+      margin-bottom: 10px;
+    }
+
+    .game-card p {
+      font-size: 0.95rem;
+      color: #666;
+      margin-bottom: 20px;
+      flex: 1;
+    }
+
+    .play-btn {
+      background-color: var(--primary);
+      color: white;
+      text-decoration: none;
+      padding: 10px 20px;
+      border-radius: 6px;
+      font-weight: bold;
+      transition: background-color 0.2s;
+      display: inline-block;
+    }
+
+    .play-btn:hover {
+      background-color: var(--primary-dark);
+    }
+
+    .info-section {
+      background: var(--card-bg);
+      border-radius: 12px;
+      padding: 25px;
+      max-width: 900px;
+      width: 100%;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    }
+
+    .info-section h3 {
+      color: var(--primary);
+      margin-bottom: 10px;
+    }
+
+    .info-section ul {
+      margin-left: 20px;
+      color: #555;
+    }
+
+    .info-section li {
+      margin-bottom: 8px;
+    }
+  </style>
+</head>
+<body>
+
+  <header class="hero">
+    <h1>Tervetuloa Eurontuotteet.fi Peliareenalle!</h1>
+    <p>
+      Peliareenalla voit tutustua Eurontuotteet.fi-verkkokaupan euron löytöihin interaktiivisten ja hauskojen pelien avulla.
+    </p>
+  </header>
+
+  <section class="games-grid">
+    <div class="game-card">
+      <div>
+        <div class="game-icon">🎴</div>
+        <h2>Muistipeli</h2>
+        <p>Etsi tuoteparit ja peli näyttää löytämäsi tuotteet suorine ostolinkkeineen.</p>
+      </div>
+      <a href="muistipeli.html" class="play-btn">Pelaa Muistipeliä</a>
+    </div>
+
+    <div class="game-card">
+      <div>
+        <div class="game-icon">🎡</div>
+        <h2>Onnenpyörä</h2>
+        <p>Pyöräytä onnenpyörää ja katso, minkä euron tuotteen pyörä sinulle arpoo.</p>
+      </div>
+      <a href="onnenpyora.html" class="play-btn">Pyöräytä Onnenpyörää</a>
+    </div>
+
+    <div class="game-card">
+      <div>
+        <div class="game-icon">🔥</div>
+        <h2>Tuoteselain</h2>
+        <p>Pyyhkäise tuotteita oikealle (Tykkää) tai vasemmalle (Ohita). Lopuksi näet tykkäämäsi tuotteet.</p>
+      </div>
+      <a href="tinder.html" class="play-btn">Avaa Tuoteselain</a>
+    </div>
+  </section>
+
+  <section class="info-section">
+    <h3>Mikä tämä sivusto on?</h3>
+    <p style="margin-bottom: 12px;">
+      Tämä peliareena yhdistää viihdyttävät verkkopelit ja verkkokauppatuotteiden selailun. Kaikki pelien tuotteet ovat peräisin Eurontuotteet.fi-valikoimasta.
+    </p>
+    <ul>
+      <li>Valitse yläpalkista haluamasi peli.</li>
+      <li>Jokaisen pelin yhteydessä pääset siirtymään suoraan verkkokauppaan katsomaan ja ostamaan tuotteita.</li>
+      <li>Voit palata tälle etusivulle milloin tahansa valitsemalla navigaatiosta Etusivun.</li>
+    </ul>
+  </section>
+
+</body>
+</html>

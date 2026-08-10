@@ -314,7 +314,7 @@
     async function fetchLeaderboard() {
       const tbody = document.getElementById('leaderboard-body');
       try {
-        const response = await fetch(`https://www.dreamlo.com/lb/${DREAMLO_KEY}/json`);
+        const response = await fetch(`http://www.dreamlo.com/lb/${DREAMLO_KEY}/json`);
         const data = await response.json();
         
         let entries = data.dreamlo.leaderboard ? data.dreamlo.leaderboard.entry : [];
@@ -343,7 +343,7 @@
     async function submitScore(name, score) {
       const cleanName = encodeURIComponent(name.trim() || 'Anonyymi');
       try {
-        await fetch(`https://www.dreamlo.com/lb/${DREAMLO_KEY}/add/${cleanName}/${score}`);
+        await fetch(`http://www.dreamlo.com/lb/${DREAMLO_KEY}/add/${cleanName}/${score}`);
         fetchLeaderboard();
       } catch (err) {
         console.error('Virhe pisteiden lähetystilanteessa:', err);

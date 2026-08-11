@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Vaakajuoksupeli - Dreamlo Leaderboard</title>
+  <title>Vaakajuoksupeli - Firebase Leaderboard</title>
   <style>
     :root {
       --primary: #d9232e;
@@ -150,7 +150,8 @@
   </div>
 
   <script>
-    const DREAMLO_KEY = "6ODREvZM8E-yS0p6cxscpwF1GF-CKAgUG047AYEdmhLA";
+    const FIREBASE_DB_URL = "https://korhogames-default-rtdb.europe-west1.firebasedatabase.app/scores.json";
+
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
 
@@ -314,17 +315,17 @@
     async function fetchLeaderboard() {
       const tbody = document.getElementById('leaderboard-body');
       try {
-        const response = await fetch(`http://www.dreamlo.com/lb/${DREAMLO_KEY}/json`);
+        const response = await fetch(FIREBASE_DB_URL);
         const data = await response.json();
-        
-        let entries = data.dreamlo.leaderboard ? data.dreamlo.leaderboard.entry : [];
-        if (!Array.isArray(entries)) entries = entries ? [entries] : [];
 
         tbody.innerHTML = '';
-        if (entries.length === 0) {
+        if (!data) {
           tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;">Ei vielä tuloksia. Ole ensimmäinen!</td></tr>';
           return;
         }
+
+        const entries = Object.values(data);
+        entries.sort((a, b) => b.score - a.score);
 
         entries.slice(0, 5).forEach((entry, index) => {
           const row = document.createElement('tr');
@@ -336,14 +337,23 @@
           tbody.appendChild(row);
         });
       } catch (err) {
+        console.error("Virhe ladattaessa tuloksia:", err);
         tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;">Tuloslistan lataus epäonnistui.</td></tr>';
       }
     }
 
     async function submitScore(name, score) {
-      const cleanName = encodeURIComponent(name.trim() || 'Anonyymi');
+      const cleanName = name.trim() || 'Anonyymi';
       try {
-        await fetch(`http://www.dreamlo.com/lb/${DREAMLO_KEY}/add/${cleanName}/${score}`);
+        await fetch(FIREBASE_DB_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: cleanName,
+            score: score,
+            timestamp: Date.now()
+          })
+        });
         fetchLeaderboard();
       } catch (err) {
         console.error('Virhe pisteiden lähetystilanteessa:', err);
@@ -396,7 +406,6 @@
 
     canvas.addEventListener('mousedown', jump);
 
-    // Ladataan tuloslista heti sivun avautuessa
     fetchLeaderboard();
     startGame();
   </script>
